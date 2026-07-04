@@ -3,6 +3,7 @@
 
 #include <cstdio>
 #include <iostream>
+#include <stdexcept>
 
 using namespace std;
 
@@ -30,6 +31,7 @@ int main(int argc, char **argv)
   if (argc == 2)
   {
     input = fopen(argv[1], "r");
+
     if (input == nullptr)
     {
       cerr << "Greska: ne mogu da otvorim fajl: " << argv[1] << endl;
@@ -53,17 +55,43 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  cout << "Formula je uspesno parsirana." << endl;
   cout << "Parsirana formula:" << endl;
-  cout << parsed_formula << endl;
+  cout << parsed_formula << endl
+       << endl;
 
   Formula nnf = toNNF(parsed_formula);
-  cout << "NNF:" << endl;
-  cout << nnf << endl;
 
-  NormalForm cnf = classicalCNF(parsed_formula);
-  cout << "CNF:" << endl;
-  printNormalForm(cnf);
+  cout << "NNF:" << endl;
+  cout << nnf << endl
+       << endl;
+
+  try
+  {
+    NormalForm classical = classicalCNF(parsed_formula);
+
+    cout << "Klasicna KNF:" << endl;
+    printNormalForm(classical);
+    cout << endl;
+  }
+  catch (const exception &e)
+  {
+    cout << "Klasicna KNF nije primenljiva: " << e.what() << endl
+         << endl;
+  }
+
+  try
+  {
+    NormalForm tseitin = tseitinCNF(parsed_formula);
+
+    cout << "Tseitin KNF:" << endl;
+    printNormalForm(tseitin);
+    cout << endl;
+  }
+  catch (const exception &e)
+  {
+    cout << "Tseitin transformacija nije primenljiva: " << e.what() << endl
+         << endl;
+  }
 
   return 0;
 }

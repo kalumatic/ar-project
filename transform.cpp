@@ -191,6 +191,107 @@ NormalForm classicalCNF(const Formula &f)
     return toCNF(nnf);
 }
 
+static Literal neg(const Literal &l)
+{
+    return Literal{!l.pos, l.atom};
+}
+
+static Formula makeFreshAtom(int &counter)
+{
+    return FDB().makeAtom("__t" + to_string(++counter));
+}
+
+static Literal tseitinRec(const Formula &f, int &counter, NormalForm &cnf)
+{
+    switch (f->getType())
+    {
+    case BaseFormula::T_TRUE:
+    {
+        Formula a = makeFreshAtom(counter);
+        Literal l{true, a};
+        cnf.push_back({l});
+        return l;
+    }
+
+    case BaseFormula::T_FALSE:
+    {
+        Formula a = makeFreshAtom(counter);
+        Literal l{true, a};
+        cnf.push_back({neg(l)});
+        return l;
+    }
+
+    case BaseFormula::T_ATOM:
+        return Literal{true, f};
+
+    case BaseFormula::T_NOT:
+    {
+        Formula op = f->getOperand();
+
+        if (op->getType() != BaseFormula::T_ATOM)
+        {
+            throw runtime_error("Tseitin ocekuje NNF formulu");
+        }
+
+        return Literal{false, op};
+    }
+
+    case BaseFormula::T_AND:
+    {
+        Literal l = tseitinRec(f->getOperand1(), counter, cnf);
+        Literal r = tseitinRec(f->getOperand2(), counter, cnf);
+
+        Formula a = makeFreshAtom(counter);
+        Literal t{true, a};
+
+        cnf.push_back({neg(t), l});
+        cnf.push_back({neg(t), r});
+        cnf.push_back({t, neg(l), neg(r)});
+
+        return t;
+    }
+
+    case BaseFormula::T_OR:
+    {
+        Literal l = tseitinRec(f->getOperand1(), counter, cnf);
+        Literal r = tseitinRec(f->getOperand2(), counter, cnf);
+
+        Formula a = makeFreshAtom(counter);
+        Literal t{true, a};
+
+        cnf.push_back({t, neg(l)});
+        cnf.push_back({t, neg(r)});
+        cnf.push_back({neg(t), l, r});
+
+        return t;
+    }
+
+    case BaseFormula::T_IMP:
+    case BaseFormula::T_IFF:
+        throw runtime_error("Tseitin ocekuje formulu bez => i <=>, prvo pozovi toNNF");
+
+    case BaseFormula::T_FORALL:
+    case BaseFormula::T_EXISTS:
+        throw runtime_error("Tseitin transformacija je trenutno samo za iskazne formule");
+    }
+
+    throw runtime_error("Nepoznat tip formule u tseitinRec");
+}
+
+NormalForm tseitinCNF(const Formula &f)
+{
+    Formula nnf = toNNF(f);
+
+    NormalForm cnf;
+    int counter = 0;
+
+    Literal top = tseitinRec(nnf, counter, cnf);
+
+    cnf.push_back({top});
+
+    return cnf;
+}
+
 void printNormalForm(const NormalForm &nf, ostream &out)
 {
     if (nf.empty())

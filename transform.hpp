@@ -21,6 +21,8 @@ Formula toNNFNot(const Formula &f);
 NormalForm toCNF(const Formula &f);
 NormalForm classicalCNF(const Formula &f);
 
+NormalForm tseitinCNF(const Formula &f);
+
 void printNormalForm(const NormalForm &nf, std::ostream &out = std::cout);
 
 #endif
