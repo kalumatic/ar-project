@@ -1,7 +1,8 @@
+main: main.o parser.o lexer.o fol.o transform.o
+	g++ -std=c++17 -o main fol.o transform.o main.o parser.o lexer.o
 
-
-main: main.o parser.o lexer.o fol.o
-	g++ -std=c++17 -o main fol.o main.o parser.o lexer.o
+transform.o: transform.cpp transform.hpp fol.hpp
+	g++ -std=c++17 -c -o transform.o transform.cpp
 
 fol.o: fol.cpp fol.hpp
 

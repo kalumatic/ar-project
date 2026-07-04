@@ -1,4 +1,5 @@
 #include "fol.hpp"
+#include "transform.hpp"
 
 #include <cstdio>
 #include <iostream>
@@ -55,6 +56,14 @@ int main(int argc, char **argv)
   cout << "Formula je uspesno parsirana." << endl;
   cout << "Parsirana formula:" << endl;
   cout << parsed_formula << endl;
+
+  Formula nnf = toNNF(parsed_formula);
+  cout << "NNF:" << endl;
+  cout << nnf << endl;
+
+  NormalForm cnf = classicalCNF(parsed_formula);
+  cout << "CNF:" << endl;
+  printNormalForm(cnf);
 
   return 0;
 }
