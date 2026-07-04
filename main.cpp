@@ -1,9 +1,13 @@
 #include "fol.hpp"
 #include "transform.hpp"
 
+#include <chrono>
 #include <cstdio>
+#include <exception>
 #include <iostream>
-#include <stdexcept>
+#include <set>
+#include <string>
+#include <utility>
 
 using namespace std;
 
@@ -11,11 +15,76 @@ extern int yyparse();
 extern FILE *yyin;
 extern Formula parsed_formula;
 
+using Clock = chrono::high_resolution_clock;
+
+struct NFStats
+{
+  size_t clauses = 0;
+  size_t literals = 0;
+  size_t maxClauseSize = 0;
+  size_t auxAtoms = 0;
+  double milliseconds = 0.0;
+};
+
 static void printUsage(const char *programName)
 {
   cerr << "Upotreba:\n";
   cerr << "  " << programName << " <formula.txt>\n";
   cerr << "  echo \"formula;\" | " << programName << "\n";
+}
+
+static bool isTseitinAtom(const Formula &atom)
+{
+  return atom->getType() == BaseFormula::T_ATOM &&
+         atom->getSymbol().rfind("__t", 0) == 0;
+}
+
+static NFStats calculateStats(const NormalForm &nf, double milliseconds)
+{
+  NFStats stats;
+  stats.clauses = nf.size();
+  stats.milliseconds = milliseconds;
+
+  set<string> aux;
+
+  for (const Clause &clause : nf)
+  {
+    stats.literals += clause.size();
+
+    if (clause.size() > stats.maxClauseSize)
+      stats.maxClauseSize = clause.size();
+
+    for (const Literal &literal : clause)
+    {
+      if (isTseitinAtom(literal.atom))
+        aux.insert(literal.atom->getSymbol());
+    }
+  }
+
+  stats.auxAtoms = aux.size();
+
+  return stats;
+}
+
+static void printStats(const NFStats &stats)
+{
+  cout << "Statistika:" << endl;
+  cout << "  broj klauza: " << stats.clauses << endl;
+  cout << "  broj literala: " << stats.literals << endl;
+  cout << "  maksimalna duzina klauze: " << stats.maxClauseSize << endl;
+  cout << "  pomocni Tseitin atomi: " << stats.auxAtoms << endl;
+  cout << "  vreme transformacije: " << stats.milliseconds << " ms" << endl;
+}
+
+template <typename Func>
+static pair<NormalForm, double> measure(Func transform)
+{
+  auto start = Clock::now();
+  NormalForm nf = transform();
+  auto end = Clock::now();
+
+  chrono::duration<double, milli> diff = end - start;
+  return {nf, diff.count()};
 }
 
 int main(int argc, char **argv)
@@ -45,9 +114,7 @@ int main(int argc, char **argv)
   int parseResult = yyparse();
 
   if (argc == 2)
-  {
     fclose(input);
-  }
 
   if (parseResult != 0 || parsed_formula == nullptr)
   {
@@ -67,10 +134,12 @@ int main(int argc, char **argv)
 
   try
   {
-    NormalForm classical = classicalCNF(parsed_formula);
+    auto [classical, classicalTime] = measure([&]()
+                                              { return classicalCNF(parsed_formula); });
 
     cout << "Klasicna KNF:" << endl;
     printNormalForm(classical);
+    printStats(calculateStats(classical, classicalTime));
     cout << endl;
   }
   catch (const exception &e)
@@ -81,10 +150,12 @@ int main(int argc, char **argv)
 
   try
   {
-    NormalForm tseitin = tseitinCNF(parsed_formula);
+    auto [tseitin, tseitinTime] = measure([&]()
+                                          { return tseitinCNF(parsed_formula); });
 
     cout << "Tseitin KNF:" << endl;
     printNormalForm(tseitin);
+    printStats(calculateStats(tseitin, tseitinTime));
     cout << endl;
   }
   catch (const exception &e)
