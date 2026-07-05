@@ -23,6 +23,15 @@ NormalForm classicalCNF(const Formula &f);
 
 NormalForm tseitinCNF(const Formula &f);
 
+Formula simplify(const Formula &f);
+
+Formula standardizeVariables(const Formula &f);
+Formula toPrenex(const Formula &f);
+Formula skolemize(const Formula &f);
+Formula removeUniversalQuantifiers(const Formula &f);
+
+NormalForm folClassicalCNF(const Formula &f);
+
 void printNormalForm(const NormalForm &nf, std::ostream &out = std::cout);
 
 #endif

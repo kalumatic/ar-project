@@ -126,7 +126,12 @@ int main(int argc, char **argv)
   cout << parsed_formula << endl
        << endl;
 
-  Formula nnf = toNNF(parsed_formula);
+  Formula simplified = simplify(parsed_formula);
+  Formula nnf = toNNF(simplified);
+
+  cout << "Pojednostavljena formula:" << endl;
+  cout << simplified << endl
+       << endl;
 
   cout << "NNF:" << endl;
   cout << nnf << endl
@@ -135,16 +140,16 @@ int main(int argc, char **argv)
   try
   {
     auto [classical, classicalTime] = measure([&]()
-                                              { return classicalCNF(parsed_formula); });
+                                              { return folClassicalCNF(parsed_formula); });
 
-    cout << "Klasicna KNF:" << endl;
+    cout << "Klasicna klauzalna forma:" << endl;
     printNormalForm(classical);
     printStats(calculateStats(classical, classicalTime));
     cout << endl;
   }
   catch (const exception &e)
   {
-    cout << "Klasicna KNF nije primenljiva: " << e.what() << endl
+    cout << "Klasicna klauzalna forma nije primenljiva: " << e.what() << endl
          << endl;
   }
 
@@ -153,7 +158,7 @@ int main(int argc, char **argv)
     auto [tseitin, tseitinTime] = measure([&]()
                                           { return tseitinCNF(parsed_formula); });
 
-    cout << "Tseitin KNF:" << endl;
+    cout << "Tseitin KNF (iskazna logika):" << endl;
     printNormalForm(tseitin);
     printStats(calculateStats(tseitin, tseitinTime));
     cout << endl;
